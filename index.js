@@ -10,6 +10,10 @@ const s3 = new AWS.S3();
 
 const regexp = /[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}\.[0-9]{3}Z/;
 
+const logForwardLambda = 'logs-data-stream';
+const lambda = new AWS.Lambda({
+  region: process.env.AWS_DEFAULT_REGION
+});
 exports.handler = async (event, context) => {
   try {
     const accountOwner = JSON.stringify(context.invokedFunctionArn).split(':')[4];
@@ -25,7 +29,7 @@ exports.handler = async (event, context) => {
         return;
       }
 
-      const awsLogs = await getLogParams(message, file, accountOwner);
+      let awsLogs = await getLogParams(message, file, accountOwner);
 
       const bucket = message.s3.bucket.name;
       const s3ReadStream = s3.getObject({
@@ -50,7 +54,16 @@ exports.handler = async (event, context) => {
         }
       }
 
-      gzipLogs(awsLogs);
+      const data = gzipLogs(awsLogs);
+
+      const params = {
+        FunctionName: logForwardLambda,
+        InvocationType: 'Event',
+        Payload: JSON.stringify({ awslogs: { data } })
+      };
+
+     lambda.invoke(params, (err, result));
+     console.log('Processed logs for file:', file)
     }
     return `Successfully processed ${event.Records.length} messages.`;
   } catch (error) {
@@ -64,14 +77,15 @@ async function getLogParams(message, file, accountOwner) {
     owner: accountOwner,
     logGroup: null,
     logStream: null,
-    logEvents:[]
+    logEvents:[],
+    data: null
   };
 
   const pathlevels = file.split("/");
   const taskId = pathlevels[pathlevels.length - 3];
   const taskdetails = await cloudwatchlogs.describeExportTasks({taskId}).promise();
   awsLogs.logGroup = taskdetails.exportTasks[0].logGroupName;
-  awsLogs.logStream = pathlevels[pathlevels.length - 2].replace(/\//g, "-");
+  awsLogs.logStream = pathlevels[pathlevels.length - 2].replace(/-/g, "/");
 
   return awsLogs;
 }
