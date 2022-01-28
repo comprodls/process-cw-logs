@@ -62,8 +62,8 @@ exports.handler = async (event, context) => {
         Payload: JSON.stringify({ awslogs: { data } })
       };
 
-     lambda.invoke(params, (err, result));
-     console.log('Processed logs for file:', file)
+      lambda.invoke(params);
+      console.log('Processed logs for file:', file)
     }
     return `Successfully processed ${event.Records.length} messages.`;
   } catch (error) {
