@@ -31,7 +31,7 @@ module.exports = {
                 "arn": "arn:aws:s3:::sam-build-artifacts-apsouth1"
               },
               "object": {
-                "key": "export1/be4072a7-ff20-4e98-a61a-40d63d5a414f/2022-01-18-[$LATEST]2f2faf726d06475489c93fe6f5a69d21/000000.gz",
+                "key": "export1/be4072a7-ff20-4e98-a61a-40d63d5a414f/2022-01-18-[$LATEST]2f2faf726d06475489c93fe6f5a69d21/logs.gz",
                 "size": 8,
                 "eTag": "db22eb6f271f4e4be4ba5d01a0adb69d",
                 "sequencer": "0061EE73A25CBA077D"

@@ -7,7 +7,7 @@ Reingest the old logs from the cloudwatch to the elasticsearch domain
 # Setup Infra
 
 1. Create a S3 bucket and add permissions to it so that logs can be exported. Refer: https://docs.aws.amazon.com/AmazonCloudWatch/latest/logs/S3ExportTasksConsole.html
-2. Create a sqs and add s3 notification to push the create object notifications to the sqs. Refer: https://docs.aws.amazon.com/AmazonS3/latest/userguide/enable-event-notifications.html
+2. Create a sqs and add s3 notification to push the create object notifications to the sqs. Refer: https://docs.aws.amazon.com/AmazonS3/latest/userguide/enable-event-notifications.html and https://docs.aws.amazon.com/AmazonS3/latest/userguide/grant-destinations-permissions-to-s3.html
 3. Create a lambda function and add sqs as the trigger. Refer: https://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/sqs-configure-lambda-function-trigger.html
 4. provide lambda functions the permissions, refer 'policy.json' file
 
