@@ -14,6 +14,8 @@ const logForwardLambda = 'logs-data-stream';
 const lambda = new AWS.Lambda({
   region: process.env.AWS_DEFAULT_REGION
 });
+
+const fileSizeLimit = 200 * 1000;
 exports.handler = async (event, context) => {
   try {
     const accountOwner = JSON.stringify(context.invokedFunctionArn).split(':')[4];
@@ -42,10 +44,12 @@ exports.handler = async (event, context) => {
         terminal: false
       });
 
-      let fileApproxSize = 0;
+      let lineSizeApprox = 0;
+      let lineCount = 0;
 
       for await (const currentline of rl) {
         if (currentline.length > 0) {
+          lineCount++;
           const result = currentline.match(regexp);
           if (result) {
             awsLogs.logEvents.push({
@@ -55,13 +59,14 @@ exports.handler = async (event, context) => {
           }
         }
 
-        fileApproxSize = fileApproxSize + currentline.length;
-        // if(fileApproxSize > 200000){
-        //   let invokeData = Object.assign({}, awsLogs);
-        //   fileApproxSize = 0;
-        //   awsLogs.logEvents = [];
-        //   await invokeLambda(invokeData);
-        // }
+        lineSizeApprox = lineSizeApprox + currentline.length;
+        if (lineSizeApprox > fileSizeLimit) {
+          let partialData = Object.assign({}, awsLogs);
+          lineSizeApprox = 0;
+          awsLogs.logEvents = [];
+          console.log(`${lineCount}, lines processed`);
+          await invokeLambda(partialData);
+        }
       }
 
       await invokeLambda(awsLogs)
@@ -107,6 +112,5 @@ async function invokeLambda(awsLogs) {
 function gzipLogs(logObj) {
   var bufferObject = new Buffer.from(JSON.stringify(logObj));
   const gz = zlib.gzipSync(bufferObject).toString('base64')
-  // console.log(gz)
   return gz;
 }
