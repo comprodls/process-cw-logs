@@ -42,6 +42,8 @@ exports.handler = async (event, context) => {
         terminal: false
       });
 
+      let fileApproxSize = 0;
+
       for await (const currentline of rl) {
         if (currentline.length > 0) {
           const result = currentline.match(regexp);
@@ -52,17 +54,17 @@ exports.handler = async (event, context) => {
             })
           }
         }
+
+        fileApproxSize = fileApproxSize + currentline.length;
+        // if(fileApproxSize > 200000){
+        //   let invokeData = Object.assign({}, awsLogs);
+        //   fileApproxSize = 0;
+        //   awsLogs.logEvents = [];
+        //   await invokeLambda(invokeData);
+        // }
       }
 
-      const data = gzipLogs(awsLogs);
-
-      const params = {
-        FunctionName: logForwardLambda,
-        InvocationType: 'Event',
-        Payload: JSON.stringify({ awslogs: { data } })
-      };
-
-      lambda.invoke(params);
+      await invokeLambda(awsLogs)
       console.log('Processed logs for file:', file)
     }
     return `Successfully processed ${event.Records.length} messages.`;
@@ -77,8 +79,7 @@ async function getLogParams(message, file, accountOwner) {
     owner: accountOwner,
     logGroup: null,
     logStream: null,
-    logEvents:[],
-    data: null
+    logEvents:[]
   };
 
   const pathlevels = file.split("/");
@@ -90,9 +91,22 @@ async function getLogParams(message, file, accountOwner) {
   return awsLogs;
 }
 
-function gzipLogs(awsLogs) {
-  var bufferObject = new Buffer.from(JSON.stringify(awsLogs));
+async function invokeLambda(awsLogs) {
+  console.log(awsLogs.logEvents.length)
+  const data = gzipLogs(awsLogs);
+
+  const params = {
+    FunctionName: logForwardLambda,
+    InvocationType: 'Event',
+    Payload: JSON.stringify({ awsLogs: { data } })
+  };
+
+  await lambda.invoke(params).promise();
+}
+
+function gzipLogs(logObj) {
+  var bufferObject = new Buffer.from(JSON.stringify(logObj));
   const gz = zlib.gzipSync(bufferObject).toString('base64')
-  console.log(gz)
+  // console.log(gz)
   return gz;
 }
