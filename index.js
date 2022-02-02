@@ -4,15 +4,15 @@ const readline = require('readline');
 const zlib = require('zlib');
 
 const cloudwatchlogs = new AWS.CloudWatchLogs({
-  region: process.env.AWS_DEFAULT_REGION
+  region: process.env.AWS_REGION
 });
 const s3 = new AWS.S3();
 
 const regexp = /[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}\.[0-9]{3}Z/;
 
-const logForwardLambda = 'logs-data-stream';
+const logForwardLambda = process.env.FORWARDER_LAMBDA;
 const lambda = new AWS.Lambda({
-  region: process.env.AWS_DEFAULT_REGION
+  region: process.env.AWS_REGION
 });
 
 const fileSizeLimit = 200 * 1000;
@@ -21,7 +21,7 @@ exports.handler = async (event, context) => {
     const accountOwner = JSON.stringify(context.invokedFunctionArn).split(':')[4];
 
     for (const { messageId, body } of event.Records) {
-      const message = body.Records[0];
+      const message = JSON.parse(body).Records[0];
       if (message.eventSource != "aws:s3") {
         return;
       }
@@ -103,7 +103,7 @@ async function invokeLambda(awsLogs) {
   const params = {
     FunctionName: logForwardLambda,
     InvocationType: 'Event',
-    Payload: JSON.stringify({ awsLogs: { data } })
+    Payload: JSON.stringify({ awslogs: { data } })
   };
 
   await lambda.invoke(params).promise();
