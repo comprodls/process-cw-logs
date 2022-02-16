@@ -4,8 +4,10 @@ const lambda = require('../index.js');
 const chai = require('chai');
 const expect = chai.expect;
 const event = require('./event');
+
+const invokedFunctionArn = "" //Provide ARN of the lambda
 var context = {
-  "invokedFunctionArn": "arn:aws:lambda:ap-south-1:003801200385:function:logs-data-stream"
+  "invokedFunctionArn": invokedFunctionArn
 };
 
 describe('Test KK Proxy Lambda', function () {
@@ -15,21 +17,3 @@ describe('Test KK Proxy Lambda', function () {
         // expect(result.statusCode).to.be.equal(200);
     });
 });
-
-
-/**
- * Sample success methodArgument -
- * {
-  orderId: '219875',
-  sessionId: 'S1231182fb5eeab6101cc377272cf75b9f6b88da3739b21e9036c532e736d24',
-  langIdForOrder: -1,
-  options: {
-    templateName: 'order_success',
-    countryCode: 'en',
-    fromAddress: 'noreply@cambridge.org',
-    toAddress: 'cdev146@yopmail.com'
-  },
-  f: 'sendOrderConfirmationEmail1',
-  languageId: -1,
-  s: 'store_elt_compass'
- */
