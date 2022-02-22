@@ -30,7 +30,8 @@
             "Action": [
                 "logs:CreateLogGroup",
                 "logs:CreateLogStream",
-                "logs:PutLogEvents"
+                "logs:PutLogEvents",
+                "logs:DescribeExportTasks"
             ],
             "Effect": "Allow",
             "Resource": "*"
