@@ -4,20 +4,56 @@ Reingest the old logs from the cloudwatch to the elasticsearch domain
 # Architecture
 ![Process AWS Logs](https://i.ibb.co/Cs94wbX/aws-infra.png "Process AWS Logs")
 
-# Setup Infra
+# Prerequisits
+## ES domain with subscriber lambda
+1. Setup a new ES domain with zero replica as per the already existing process
+2. Make sure the subscriber lambda code is optimized as per the newly updated code to avoid sending logs matching certain patterns
+3. Insert some logs in one of the log group to verify the logs are reaching the kibana domain
 
-1. Create a S3 bucket and add permissions to it so that logs can be exported. Refer: https://docs.aws.amazon.com/AmazonCloudWatch/latest/logs/S3ExportTasksConsole.html
-2. Create a sqs and add s3 notification to push the create object notifications to the sqs. Refer: https://docs.aws.amazon.com/AmazonS3/latest/userguide/enable-event-notifications.html and https://docs.aws.amazon.com/AmazonS3/latest/userguide/grant-destinations-permissions-to-s3.html
-3. Create a lambda function and add sqs as the trigger. Refer: https://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/sqs-configure-lambda-function-trigger.html
-4. provide lambda functions the permissions, refer 'policy.json' file
+# Detailed steps for setting up new AWS Infra 
+
+## Step 1 | Setup S3 bucket with required permissions
+1. Create a new private S3 bucket in the same region from which logs are to be exported (e.g. us-west-2)
+2. Update bucket permissions so it can be accessed by the cloudwatch logs, sample available at [s3-policy.json](./policies/s3-policy.json) [NOTE: update bucket name and aws region to correct values]  
+
+>Ref: https://docs.aws.amazon.com/AmazonCloudWatch/latest/logs/S3ExportTasksConsole.html
 
 
-# Setup Lambda function
-1. Copy the code of the lambda function from 'index.js' file
-2. Set environment variables FORWARDER_LAMBDA providing name of the forwarder lambda function 
-3. Set memory Size, timeout and concurrency of the lambda function
-4. As per AWS recommendation, keep sqs visibility timeout more than lambda timeout, Ref: https://docs.aws.amazon.com/lambda/latest/dg/with-sqs.html
+## Step 2 | Create a SQS to recieve events from S3 bucket
+1. Create a new SQS in the same region as S3.
+2. Update SQS permissions to receive events from the S3. Refer [sqs-policy.json](./policies/sqs-policy.json) [NOTE: update bucket name, queue name, account id, and aws region to correct values] 
+3. Attach a DLQ to the sqs to recieve any unprocessed message if encountered
 
-# Create an export task
-Create an export task for a cloudwatch log group and the selected date range by following the steps in https://docs.aws.amazon.com/AmazonCloudWatch/latest/logs/S3ExportTasksConsole.html
-This will start exporting the logs to S3 which in turn will trigger the complete cycle to export the data to the elasticsearch domain
+>Ref: https://docs.aws.amazon.com/AmazonS3/latest/userguide/grant-destinations-permissions-to-s3.html 
+
+## Step 3 | Publish S3 events to SQS
+1. In S3 console, configure event notifications
+2. Check 'All Object Creation' events 
+3. Add suffix of '.gz' to filter the events for gzip files only
+4. In destination, choose the queue created in previous step
+
+> Ref: https://docs.aws.amazon.com/AmazonS3/latest/userguide/enable-event-notifications.html
+
+## Step 4 | Create a Lambda function to consume SQS message
+1. Create a new lambda funcion with node14 runtime
+2. Add sqs created in step 2 as the trigger
+3. Copy the lambda code from the [index.js](./index.js)
+4. For lambda role, create a new role with the permissions mentioned in [lambda-policy.json](./policies/lambda-policy.json) 
+[NOTE: update bucket name, queue name, account id, aws region, subscriber lambda name to correct values] 
+5. Set environment variables FORWARDER_LAMBDA providing name of the forwarder lambda function
+
+## Step 5 | Verify the configurations
+1. For Lambda, make sure to set the following configurations (adding example values alongside)
+    - Memory Value (512MB)
+    - Timeout (2 min)
+    - Concurrency (1) [NOTE: a single invocation of sqs lambda may invoke subscriber lambda multiple times]
+    - SQS batch size (1)
+2. For SQS, make sure to set the following configurations (adding example values alongside)
+    - visibility timeout (6 min) [NOTE: It should be more than lambda timeout]
+
+
+# Process the log groups
+1. Go to desired log group in cloudwatch whose logs are to be exported.
+2. Click on the actions and click 'Export Data to Amazon S3' 
+3. Enter the start and end date and start the export job.
+4. It should export the logs to kibana

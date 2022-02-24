@@ -8,7 +8,7 @@
                 "sqs:GetQueueAttributes"
             ],
             "Effect": "Allow",
-            "Resource": "arn:aws:sqs:ap-south-1:003801200385:test-logs-sqs"
+            "Resource": "arn:aws:sqs:region:account-id:queue-name"
         },
         {
             "Action": [
@@ -16,7 +16,7 @@
                 "s3:GetObjectVersion"
             ],
             "Effect": "Allow",
-            "Resource": "arn:aws:s3:::sam-build-artifacts-apsouth1/*"
+            "Resource": "arn:aws:s3:::bucketname/*"
         },
         {
             "Action": [
@@ -24,7 +24,7 @@
                 "lambda:InvokeFunction"
             ],
             "Effect": "Allow",
-            "Resource": "arn:aws:lambda:ap-south-1:003801200385:function:logs-sqs"
+            "Resource": "arn:aws:lambda:region:account-id:function:subscriber-function"
         },
         {
             "Action": [
