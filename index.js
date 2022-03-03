@@ -26,7 +26,7 @@ exports.handler = async (event, context) => {
         return;
       }
 
-      const file = message.s3.object.key;
+      const file = decodeURIComponent(message.s3.object.key);
       if(path.extname(file) != ".gz") {
         return;
       }
