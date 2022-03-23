@@ -40,17 +40,22 @@ Reingest the old logs from the cloudwatch to the elasticsearch domain
 3. Copy the lambda code from the [index.js](./index.js)
 4. For lambda role, create a new role with the permissions mentioned in [lambda-policy.json](./policies/lambda-policy.json) 
 [NOTE: update bucket name, queue name, account id, aws region, subscriber lambda name to correct values] 
-5. Set environment variables FORWARDER_LAMBDA providing name of the forwarder lambda function
+5. Set environment variables FORWARDER_LAMBDA providing name of the forwarder lambda function. [NOTE: a single invocation of sqs lambda may invoke subscriber lambda multiple times]
 
-## Step 5 | Verify the configurations
-1. For Lambda, make sure to set the following configurations (adding example values alongside)
-    - Memory Value (512MB)
-    - Timeout (2 min)
-    - Concurrency (1) [NOTE: a single invocation of sqs lambda may invoke subscriber lambda multiple times]
-    - SQS batch size (1)
-2. For SQS, make sure to set the following configurations (adding example values alongside)
-    - visibility timeout (6 min) [NOTE: It should be more than lambda timeout]
+## Step 5 | Verify/Update the configurations
+We have done the test runs to find the optimal numbers. Test run results are available at https://docs.google.com/spreadsheets/d/1MC1bbtXpk1wK-WeEgXvkI9Irru0sCx4TaafXGEuys2c/edit#gid=551936901
 
+1. Lambda 1 (SQS Consumer)
+    - SQS batch size = 1
+    - Memory Value = 512MB
+    - Timeout = 5 min
+    - Reserved Concurrency = 3 (for container logs), 1 (for lambda and api gw logs)
+2. Lambda 2 (ES Forwarder Lambda)
+    - Memory Value = 512MB
+    - Timeout = 5 min
+    - Reserved Concurrency = 200
+3. SQS queue
+    - visibility timeout = 15 min
 
 # Process the log groups
 1. Go to desired log group in cloudwatch whose logs are to be exported.
